@@ -14,7 +14,9 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 title: The submersible project
-email: ranchordo@gmail.com
+author:
+  name: Ray Anchordoquy
+  email: ranchordo@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   A project to build a hydro-acoustically-controlled underwater robot.
 baseurl: "/submersible-project" # the subpath of your site, e.g. /blog
@@ -24,7 +26,7 @@ github_username:  ranchordo
 
 # Build settings
 markdown: kramdown
-theme: minima
+remote_theme: jekyll/minima
 plugins:
   - jekyll-feed
 
@@ -39,6 +41,7 @@ plugins:
 #   - vendor/cache/
 #   - vendor/gems/
 #   - vendor/ruby/
+show_excerpts: false
 header_pages:
   - gallery.md
 plugins:
