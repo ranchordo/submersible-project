@@ -36,5 +36,5 @@ plugins:
 minima:
   skin: dark
   social_links:
-    github: ranchordo
-    youtube_channel: UCvOtpvs62mcU_rlKNXQV8ww
+    - {platform: github, user_url: "https://github.com/ranchordo"}
+    - {platform: youtube, user_url: "https://youtube.com/@ranchordo"}
