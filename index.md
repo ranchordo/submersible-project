@@ -12,4 +12,4 @@ Due to the ~~idiotic~~ sophisticated nature of the project, losing the entire su
 ## Communication
 Wireless (radio) signals don't work very well underwater, and most communication with remote devices happens over radio communication. Most commercial submersible units use a long tether in order to communicate with the ROV, but that's a bit cumbersome. Moronic Solutions™ Submersible 3000™™ has developed a solution to this: hydro-acoustics. By broadcasting ultrasonic waves into water using piezoelectric hydrophones, these transmissions can be decoded as data. This allows Moronic Solutions™ "products" to send wireless information such as control input, video feeds, and more, all underwater.
 ## Y u no cohd?
-~~I'm too lazy to actually publich the~~ The submersible platform codebase isn't available right now, it will be published ~~when I get around to it~~ at a later date.
+~~I'm too lazy to actually publish the~~ The submersible platform codebase isn't available right now, it will be published ~~when I get around to it~~ at a later date.
