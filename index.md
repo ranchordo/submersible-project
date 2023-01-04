@@ -2,7 +2,7 @@
 layout: page
 title: The Submersible Project
 ---
-What started out as a simple idea has slowly turned into a challenging robotics and electrical engineering project: The submersible project. Based on the goal of being as ~~cheap~~ cost efficient and looking as... um... ~~[nighmarish](/gallery)~~ functional as possible, the submersible project's goal is ultimately to maneuver underwater and take pictures and video of things at high depths.
+What started out as a simple idea has slowly turned into a challenging robotics and electrical engineering project: The submersible project. Based on the goal of being as ~~cheap~~ cost efficient and looking as... um... ~~[nighmarish](/submersible-project/gallery)~~ functional as possible, the submersible project's goal is ultimately to maneuver underwater and take pictures and video of things at high depths.
 ## Maneuverability and basic mechanical design
 The basic "body plan" for the submersible is simply that of an upside-down quadcopter. Quadcopters are easy to control and easy to build, making them the perfect choice for a motor scheme. The main body is assembled from PVC piping (again, trying to be as ~~cheap~~ cost efficient as possible). Four of the ~~cheapest~~ ahem, I mean, most cost efficient possible BLDC motors available from ~~amazon.com~~ an engineering supplier are responsible for producting the thrust.
 ## Electrical
