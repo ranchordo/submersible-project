@@ -13,13 +13,12 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: The submersible project
+title: The Submersible Project
 author:
   name: Ray Anchordoquy
   email: ranchordo@gmail.com
 description: A project to build a hydro-acoustically-controlled underwater robot.
-baseurl: "/submersible-project" # the subpath of your site, e.g. /blog
-url: "https://ranchordo.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://ranchordo.github.io/submersible-project" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: ranchordo
 github_username:  ranchordo
 
