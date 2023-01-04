@@ -1,6 +1,16 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
-layout: home
+layout: page
+title: Submersible Project
 ---
+# The submersible project
+What started out as a simple idea has slowly turned into a challenging robotics and electrical engineering project: The submersible project. Based on the goal of being as ~~cheap~~cost efficient and looking as... um... ~~[nighmarish](/gallery)~~functional as possible, the submersible project's goal is ultimately to maneuver underwater and take pictures and video of things at high depths.
+## Maneuverability and basic mechanical design
+The basic "body plan" for the submersible is simply that of an upside-down quadcopter. Quadcopters are easy to control and easy to build, making them the perfect choice for a motor scheme. The main body is assembled from PVC piping (again, trying to be as ~~cheap~~cost efficient as possible). Four of the ~~cheapest~~ahem, I mean, most cost efficient possible BLDC motors available from ~~amazon.com~~an engineering supplier are responsible for producting the thrust.
+## Electrical
+While you may say that electronics don't work underwater, they definitely can when sealed properly - encasing electronics in resin or epoxy can effectively exclude water. Because of this, all sensitive electronics onboard are coated with ~~clear nail polish~~a sophisticated electrical sealant, which minimizes bubbles and can work perfectly at high pressures. An additional challenge is that it's dark underwater<sup>\[citation needed\]</sup>, and cameras don't work very well in the dark<sup>\[citation needed\]</sup>. Because of this, the submersible is equipped with a ~~cheap truck lighting addon from amazon~~high-power LED assembly.
+## Safety and reliability
+Due to the ~~idiotic~~sophisticated nature of the project, losing the entire submersible project in the bottom of a lake somewhere would be catastrophic<sup>\[citation needed\]</sup>, and all measures have been taken to make sure that at the very least, the submersible itself can survive each trip. One of the main safety measures is simply buoyancy - the submersible floats, meaning that if all electronics fail, it will simply float to the surface. However, this buoyancy comes from a single PVC atmosphere chamber. If this chamber leaks or implodes (although it is rated to these external pressures), this redundancy will fail. In this case, the control system on board is capable of re-tuning itself, and making an emergency controlled electronic ascent.
+## Communication
+Wireless (radio) signals don't work very well underwater, and most communication with remote devices happens over radio communication. Most commercial submersible units use a long tether in order to communicate with the ROV, but that's a bit cumbersome. Moronic Solutions™ Submersible 3000™™ has developed a solution to this: hydro-acoustics. By broadcasting ultrasonic waves into water using piezoelectric hydrophones, these transmissions can be decoded as data. This allows Moronic Solutions™ "products" to send wireless information such as control input, video feeds, and more, all underwater.
+## Y u no cohd?
+~~I'm too lazy to actually publich the~~The submersible platform codebase isn't available right now, it will be published ~~when I get around to it~~at a later date.

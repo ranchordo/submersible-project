@@ -13,7 +13,7 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: The submersible project
+title: The Submersible Project
 email: ranchordo@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   A project to build a hydro-acoustically-controlled underwater robot.
@@ -46,3 +46,6 @@ plugins:
   - jekyll-remote-theme
 minima:
   skin: dark
+  social_links:
+    github: ranchordo
+    youtube_channel: UCvOtpvs62mcU_rlKNXQV8ww
