@@ -2,4 +2,5 @@
 A project to build a hydro-acoustically-controlled underwater robot  
   
   
-No code here yet, sorry
+Code here is very much in progress.  
+Hardware source (MIT) is available [here](https://oshwlab.com/ranchordo/submersible-mkii).
