@@ -1,0 +1,59 @@
+// File contains some ESC code. Please ignore it for now.
+
+#include <ESP32Servo.h>
+
+#define ESC_BOTTOM 62
+#define ESC_MIDPOINT 94
+#define ESC_TOP 158
+
+Servo ESC1;
+Servo ESC2;
+Servo ESC3;
+Servo ESC4;
+
+Servo* ESCs[4] = {&ESC1, &ESC2, &ESC3, &ESC4};
+
+void setup() {
+    // Serial.begin(115200);
+
+    ESC1.setPeriodHertz(50);
+    ESC2.setPeriodHertz(50);
+    ESC3.setPeriodHertz(50);
+    ESC4.setPeriodHertz(50);
+
+    ESC1.attach(32, 500, 2400);
+    ESC2.attach(33, 500, 2400);
+    ESC3.attach(27, 500, 2400);
+    ESC4.attach(13, 500, 2400);
+
+    ESC1.write(0);
+    ESC2.write(0);
+    ESC3.write(0);
+    ESC4.write(0);
+
+    ledcSetup(4, 5000, 8);
+    ledcSetup(5, 5000, 8);
+    ledcAttachPin(4, 4);
+    ledcAttachPin(LED_BUILTIN, 5);
+    ledcWrite(4, 255);
+    ledcWrite(5, 255);
+    delay(6000);
+}
+int esc = 0;
+void loop() {
+    for (int i = 0; i < 255; i++) {
+        ledcWrite(4, i);
+        ledcWrite(5, i);
+        ESCs[esc]->write(map(i, 0, 255, ESC_BOTTOM - 5, ESC_TOP));
+        delay(15);
+    }
+    for (int i = 255; i >= 0; i--) {
+        ledcWrite(4, i);
+        ledcWrite(5, i);
+        ESCs[esc]->write(map(i, 0, 255, ESC_BOTTOM - 5, ESC_TOP));
+        delay(15);
+    }
+    ESCs[esc]->write(0);
+    esc++;
+    esc %= 4;
+}
