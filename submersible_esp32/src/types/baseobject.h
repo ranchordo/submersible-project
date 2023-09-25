@@ -18,6 +18,11 @@ if (primitive::_static_typeId() == type_id) { \
     return new primitive (data); \
 }
 
+#define TRY_CONSTRUCT_OBJECT(object, type_id, params, num_params) \
+if (object::_static_typeId() == type_id) { \
+    return new object (params, num_params); \
+}
+
 #define SETUP_EXC(name, on_exception) \
 if (setjmp(jmp_data_##name##_) != 0) { \
     BaseObject* exc = new PString(exc_data_##name##_.message, true); \
