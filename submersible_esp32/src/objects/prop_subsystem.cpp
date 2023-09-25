@@ -1,17 +1,17 @@
-#include "prop_subsystem.h"
-// #include <cstdlib>
-// #include <cstdio>
+// #include "prop_subsystem.h"
+#include <cstdlib>
+#include <cstdio>
 
 constexpr float r_force_matrix[3][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
+    {1, 0, 0, 1},
+    {0, 1, 0, 1},
+    {0, 0, 1, 0},
 };
 
 constexpr float r_torque_matrix[3][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
+    {0, 0, 1, 1},
+    {1, 0, 0, 0},
+    {0, 1, 0, 1},
 };
 
 constexpr float compute_matr_denom(const float r_matrix[3][4]) {
@@ -52,8 +52,8 @@ constexpr float compute_a1(const float r_matrix[3][4]) {
 
 constexpr float compute_a2(const float r_matrix[3][4]) {
 #define M(A, B) r_matrix[A - 1][B - 1]
-#define PI1 (M(1, 2) * M(2, 3) * M(3, 4))
-#define PI2 (M(1, 2) * M(2, 4) * M(3, 3))
+#define PI1 (M(1, 1) * M(2, 3) * M(3, 4))
+#define PI2 (M(1, 1) * M(2, 4) * M(3, 3))
 #define PI3 (M(1, 3) * M(2, 1) * M(3, 4))
 #define PI4 (M(1, 3) * M(2, 4) * M(3, 1))
 #define PI5 (M(1, 4) * M(2, 1) * M(3, 3))
@@ -77,6 +77,12 @@ constexpr float compute_a3(const float r_matrix[3][4]) {
 #define PI5 (M(1, 4) * M(2, 1) * M(3, 2))
 #define PI6 (M(1, 4) * M(2, 2) * M(3, 1))
     return (PI1 - PI2 - PI3 + PI4 + PI5 - PI6);
+#undef PI6
+#undef PI5
+#undef PI4
+#undef PI3
+#undef PI2
+#undef PI1
 #undef M
 }
 
@@ -168,11 +174,23 @@ motor_state find_best_state(mspace_line line1, mspace_line line2) {
         motor_state state2 = line2.get_pos(g2);
         float dg1 = state2.subtract(state1).dotprod(line1.get_as());
         float dg2 = state1.subtract(state2).dotprod(line2.get_as());
-        g1 += dg1 * 0.5;
-        g2 += dg2 * 0.5;
+        g1 += dg1 * 0.2;
+        g2 += dg2 * 0.2;
         if ((__abs(dg1) + __abs(dg2)) * 0.5 <= 0.005) {
             break;
         }
     }
     return line1.get_pos(g1).midpoint(line2.get_pos(g2));
+}
+
+motor_state get_motor_state(float lf1, float lf2, float lf3, float t1, float t2, float t3) {
+    mspace_line l_force_line = find_motor_space(r_force_precalc, lf1, lf2, lf3);
+    mspace_line torque_line = find_motor_space(r_torque_precalc, t1, t2, t3);
+    return find_best_state(l_force_line, torque_line);
+}
+
+int main() {
+    motor_state s = get_motor_state(1, 0, 0, 0, 0, 0);
+    printf("%f, %f, %f, %f\n", s.m1, s.m2, s.m3, s.m4);
+    return 0;
 }
