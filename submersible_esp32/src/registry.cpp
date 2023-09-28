@@ -69,4 +69,30 @@ BaseObject* ObjectRegistry::getObject(uint16_t handle) {
     return this->registry[handle];
 }
 
+void ObjectRegistry::runGarbageCollection(unsigned long max_age_ms) {
+    unsigned long time = millis();
+    for (uint32_t i = 0; i < this->capacity; i++) {
+        if (this->registry[i] != NULL) {
+            if (time - this->registry[i]->creation_time_ms > max_age_ms) {
+                // Guhguhgarbage!
+                this->delObject(i);
+            }
+        }
+    }
+}
+
+bool ObjectRegistry::exists(uint16_t handle) {
+    return (this->registry[handle] != NULL);
+}
+
+void ObjectRegistry::runAllLivePeriodic() {
+    for (uint32_t i = 0; i < this->capacity; i++) {
+        if (this->registry[i] != NULL) {
+            if (this->registry[i]->enable_periodic) {
+                this->registry[i]->periodic();
+            }
+        }
+    }
+}
+
 ObjectRegistry mainObjectRegistry;

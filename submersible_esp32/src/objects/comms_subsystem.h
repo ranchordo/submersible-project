@@ -72,7 +72,6 @@ public:
     static uint16_t _static_typeId() { return TYPEID_COMMS_SUBSYS; }
     const char* getTypeString() override { return "Comms_Subsys"; }
     BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) override;
-    void periodic() override;
     void transmit(uint8_t* buffer, size_t len);
     void startInput();
     void startOutput();

@@ -27,3 +27,4 @@ void ResourceAllocator::freeAllocation(uint16_t ptr) {
 }
 
 ResourceAllocator ResourceAllocatorPresets::hw_timer_ints(4);
+ResourceAllocator ResourceAllocatorPresets::ledc_channels(8);

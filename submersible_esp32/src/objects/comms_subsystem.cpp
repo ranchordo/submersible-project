@@ -237,7 +237,6 @@ uint8_t* decode(uint16_t* buffer, size_t len, size_t* rxlen, GolayCorrectionStat
 // }
 
 CommunicationSubsystem::CommunicationSubsystem() {
-    this->enable_periodic = true;
     // Configure ULP clock
     unsigned long rtc_8md256_period = rtc_clk_cal(RTC_CAL_8MD256, 1000);
     this->rtc_fast_freq_hz = 1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_8md256_period;
@@ -256,9 +255,6 @@ CommunicationSubsystem::~CommunicationSubsystem() {
 
 BaseObject* CommunicationSubsystem::callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) {
 
-}
-
-void CommunicationSubsystem::periodic() {
 }
 
 #define DAC_TABLE_OFFSET (2048 - 512)
@@ -446,6 +442,10 @@ void CommunicationSubsystem::startInput() {
     uint32_t base_loop_cycles = 90;
     uint32_t target_rate = 75000;
     int delay_cycles = (this->rtc_fast_freq_hz / target_rate) - base_loop_cycles;
+    if (delay_cycles < 0) {
+        Serial.println("Input warning: can't sample at target rate.");
+        delay_cycles = 0;
+    }
     // Write ULP loop
     const ulp_insn_t input[] = {
         I_MOVI(R0, 0),

@@ -15,4 +15,5 @@ private:
 class ResourceAllocatorPresets {
 public:
     static ResourceAllocator hw_timer_ints;
+    static ResourceAllocator ledc_channels;
 };

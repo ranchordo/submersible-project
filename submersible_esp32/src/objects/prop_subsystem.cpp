@@ -1,6 +1,8 @@
-// #include "prop_subsystem.h"
-#include <cstdlib>
-#include <cstdio>
+#include "prop_subsystem.h"
+#include "../resource_allocator.h"
+#include "../types/primitives.h"
+
+#define SAFE_ACCEPT_TIMEOUT 5000
 
 constexpr float r_force_matrix[3][4] = {
     {1, 0, 0, 1},
@@ -116,11 +118,12 @@ struct motor_state {
     motor_state subtract(motor_state v) {
         return { m1 - v.m1, m2 - v.m2, m3 - v.m3, m4 - v.m4 };
     }
-    motor_state midpoint(motor_state v) {
-        return { (m1 + v.m1) * 0.5f,
-                 (m2 + v.m2) * 0.5f,
-                 (m3 + v.m3) * 0.5f,
-                 (m4 + v.m4) * 0.5f };
+    motor_state midpoint(motor_state v, float weight) {
+        float iw = 1 - weight;
+        return { m1 * iw + v.m1 * weight,
+                 m2 * iw + v.m2 * weight,
+                 m3 * iw + v.m3 * weight,
+                 m4 * iw + v.m4 * weight };
     }
 };
 
@@ -166,7 +169,8 @@ mspace_line find_motor_space(linalg_precalc lapc, float t1, float t2, float t3) 
 
 #define __abs(f) (((f) < 0) ? -(f) : (f))
 
-motor_state find_best_state(mspace_line line1, mspace_line line2) {
+// Line2 weight of 1 means we are fully on line2, 0 means we're on line1.
+motor_state find_best_state(mspace_line line1, mspace_line line2, float line2_weight) {
     float g1 = 0;
     float g2 = 0;
     for (;;) {
@@ -180,17 +184,119 @@ motor_state find_best_state(mspace_line line1, mspace_line line2) {
             break;
         }
     }
-    return line1.get_pos(g1).midpoint(line2.get_pos(g2));
+    return line1.get_pos(g1).midpoint(line2.get_pos(g2), line2_weight);
 }
 
-motor_state get_motor_state(float lf1, float lf2, float lf3, float t1, float t2, float t3) {
+motor_state get_motor_state(motion_state mstate, float torque_weight) {
+    float lf1 = mstate.linear_x;
+    float lf2 = mstate.linear_y;
+    float lf3 = mstate.linear_z;
+    float t1 = mstate.torque_x;
+    float t2 = mstate.torque_y;
+    float t3 = mstate.torque_z;
     mspace_line l_force_line = find_motor_space(r_force_precalc, lf1, lf2, lf3);
     mspace_line torque_line = find_motor_space(r_torque_precalc, t1, t2, t3);
-    return find_best_state(l_force_line, torque_line);
+    return find_best_state(l_force_line, torque_line, torque_weight);
 }
 
-int main() {
-    motor_state s = get_motor_state(1, 0, 0, 0, 0, 0);
-    printf("%f, %f, %f, %f\n", s.m1, s.m2, s.m3, s.m4);
-    return 0;
+#define ESC_500US 103
+#define ESC_BOTTOM 237
+#define ESC_MIDPOINT 306
+#define ESC_TOP 443
+#define ESC_2400US 491
+
+const uint8_t motor_gpios[4] = { 32, 33, 27, 13 };
+
+PropulsionSubsystem::PropulsionSubsystem() {
+    for (uint8_t i = 0; i < 4; i++) {
+        bool ledc_success = false;
+        uint16_t ledc_channel = ResourceAllocatorPresets::ledc_channels.allocate(&ledc_success);
+        ledcSetup(ledc_channel, 50, 12);
+        ledcAttachPin(motor_gpios[i], ledc_channel);
+        ledcWrite(ledc_channel, 0);
+        if (ledc_success) {
+            this->ledc_motor_channels[i] = ledc_channel;
+        }
+        else {
+            this->ledc_motor_channels[i] = 0;
+        }
+    }
+    this->enable_periodic = true;
+}
+
+PropulsionSubsystem::~PropulsionSubsystem() {
+    for (uint8_t i = 0; i < 4; i++) {
+        ledcDetachPin(motor_gpios[i]);
+        ResourceAllocatorPresets::ledc_channels.freeAllocation(ledc_motor_channels[i]);
+    }
+}
+
+void PropulsionSubsystem::periodic() {
+    if (millis() - this->last_accept_time > SAFE_ACCEPT_TIMEOUT) {
+        motor_state state = { 0, 0, 0, 0 };
+        this->acceptMotorState(&state);
+        this->last_accept_time = millis();
+    }
+}
+
+BaseObject* PropulsionSubsystem::callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) {
+    switch (slot) {
+    case _runStartupProcedure_:
+        CHECK_METHOD_TYPE_SIGNATURE(params, num_params, 0, );
+        for (uint8_t i = 0; i < 4; i++) {
+            ledcWrite(ledc_motor_channels[i], ESC_500US);
+            this->startup_time = millis();
+        }
+        return NULL;
+    case _isStartupComplete_:
+        CHECK_METHOD_TYPE_SIGNATURE(params, num_params, 0, );
+        if (millis() - startup_time >= 5500) {
+            return new PInteger(1);
+        }
+        return new PInteger(0);
+    case _acceptMotionState_:
+        CHECK_METHOD_TYPE_SIGNATURE(params, num_params, 7,
+            DOUBLE_TYPEID, DOUBLE_TYPEID, DOUBLE_TYPEID,
+            DOUBLE_TYPEID, DOUBLE_TYPEID, DOUBLE_TYPEID,
+            DOUBLE_TYPEID);
+        motion_state mstate = {
+            (float)((PDouble*)params[0])->value,
+            (float)((PDouble*)params[1])->value,
+            (float)((PDouble*)params[2])->value,
+            (float)((PDouble*)params[3])->value,
+            (float)((PDouble*)params[4])->value,
+            (float)((PDouble*)params[5])->value
+        };
+        this->acceptMotionState(mstate, (float)((PDouble*)params[6])->value);
+        return NULL;
+    }
+}
+
+void PropulsionSubsystem::writeMotorValue(float value, uint8_t motor) {
+    uint16_t ledc_channel = ledc_motor_channels[motor];
+    if (value < 0) {
+        if (value < -1) {
+            value = -1;
+        }
+        ledcWrite(ledc_channel, map(-value * 10000, 0, 10000, ESC_MIDPOINT, ESC_BOTTOM));
+    }
+    else {
+        if (value > 1) {
+            value = 1;
+        }
+        ledcWrite(ledc_channel, map(value * 10000, 0, 10000, ESC_MIDPOINT, ESC_TOP));
+    }
+}
+
+void PropulsionSubsystem::acceptMotorState(motor_state* state) {
+    this->writeMotorValue(state->m1, 0);
+    this->writeMotorValue(state->m2, 1);
+    this->writeMotorValue(state->m3, 2);
+    this->writeMotorValue(state->m4, 3);
+}
+
+void PropulsionSubsystem::acceptMotionState(motion_state state, float torque_weight) {
+    motor_state mstate = get_motor_state(state, torque_weight);
+    this->acceptMotorState(&mstate);
+    this->last_accept_time = millis();
 }

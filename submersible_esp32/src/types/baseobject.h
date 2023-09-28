@@ -42,6 +42,7 @@ struct SerializationResult {
 class BaseObject {
 public:
     // Allocates memory for serialization. Free buffer when done transmitting.
+    BaseObject() { this->creation_time_ms = millis(); }
     virtual SerializationResult serialize() = 0;
     virtual uint16_t getTypeId() = 0;
     virtual const char* getTypeString() = 0;
@@ -49,6 +50,16 @@ public:
     virtual BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) { return NULL; }
     virtual void periodic() {}
     bool enable_periodic = false; // Optimization
+    unsigned long creation_time_ms = 0;
+
+    bool consumeMethodResult(uint8_t slot, BaseObject** params, uint8_t num_params) {
+        BaseObject* ptr = this->callMethod(slot, params, num_params);
+        if (ptr != NULL) {
+            delete ptr;
+            return true;
+        }
+        return false;
+    }
 };
 
 struct MethodExceptionData {

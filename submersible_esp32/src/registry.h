@@ -10,6 +10,10 @@ public:
     uint16_t addObject(BaseObject* obj);
     void delObject(uint16_t handle);
     BaseObject* getObject(uint16_t handle);
+    bool exists(uint16_t handle);
+
+    void runGarbageCollection(unsigned long max_age_ms);
+    void runAllLivePeriodic();
 
     uint16_t getNumLiveObjects() {
         return this->count;
