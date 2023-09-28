@@ -25,7 +25,7 @@ public:
     static uint16_t _static_typeId() { return TYPEID_PROP_SUBSYS; }
     const char* getTypeString() override { return "Prop_Subsys"; }
     BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) override;
-    void periodic() override {}
+    void periodic() override;
     const static uint8_t _runStartupProcedure_ = 0;
     const static uint8_t _isStartupComplete_ = 1;
     const static uint8_t _acceptMotionState_ = 2;
