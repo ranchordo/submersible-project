@@ -6,6 +6,7 @@
 #include <driver/adc.h>
 
 #define TRANSMIT_INTERVAL_US 1200
+#define COMMS_INSTREAM_SIZE 128
 
 enum GolayCorrectionStatus {
     GOLAY_CORRECTION_OK = 0,
@@ -78,7 +79,11 @@ public:
     void startIdle();
     CommunicationStatus getStatus() { return status; }
 
-    // private:
+    uint32_t available();
+    uint8_t* getInstream();
+    void consumeInputBytes(size_t len);
+
+private:
     uint8_t currentOffsAdj = 128;
     uint32_t tx_bytes = 0;
     uint32_t rx_bytes = 0;
@@ -93,7 +98,9 @@ public:
     unsigned long rtc_fast_freq_hz;
     ULP_ISR_Argument isr_arg;
     AcousticGainParams acoustic_gain_params;
+    uint8_t* instream;
     void transmitWord(uint16_t data);
     void selectOutput(uint8_t sel);
     float getInputAmplitude(uint8_t wave);
+    friend void input_timer_isr();
 };

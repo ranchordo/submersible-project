@@ -6,6 +6,7 @@ enum ObjectTypeId {
     TYPEID_COMMS_SUBSYS = 0,
     TYPEID_PROP_SUBSYS = 1,
     TYPEID_LIGHT_SUBSYS = 2,
+    TYPEID_PROTO_CONTROLLER = 3,
 };
 
 #define CHECK_TYPE_SIGNATURE(name, object, params, num_params, num_expected, expected...) \

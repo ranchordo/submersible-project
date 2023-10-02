@@ -14,7 +14,6 @@ PInteger::PInteger(SerializationResult data) {
         bytes += (data.buffer[2] << 16);
         bytes += (data.buffer[3] << 24);
         this->value = *(reinterpret_cast<int*>(&bytes));
-        free(data.buffer);
     }
 }
 
@@ -33,13 +32,13 @@ PDouble::PDouble(SerializationResult data) {
         bytes += (data.buffer[6] << 48);
         bytes += (data.buffer[7] << 56);
         this->value = *(reinterpret_cast<double*>(&bytes));
-        free(data.buffer);
     }
 }
 
 PString::PString(SerializationResult data) {
-    this->value = reinterpret_cast<char*>(data.buffer);
-    this->len = data.datalen;
+    char* cdata = reinterpret_cast<char*>(data.buffer);
+    this->value = (char*)malloc(data.datalen);
+    memcpy(this->value, cdata, data.datalen);
 }
 
 PString::PString(const char* value, bool is_exception) {
@@ -50,7 +49,7 @@ PString::PString(const char* value, bool is_exception) {
 }
 
 BaseObject* constructPrimitive(uint16_t type_id, SerializationResult data) {
-    #define ON_EXCEPTION(exc_data) { delete exc_data.object; free(data.buffer); }
+    #define ON_EXCEPTION(exc_data) { delete exc_data.object; }
     SETUP_EXC(primitives_constr, ON_EXCEPTION);
     #undef ON_EXCEPTION
     

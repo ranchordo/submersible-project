@@ -222,6 +222,7 @@ PropulsionSubsystem::PropulsionSubsystem() {
         }
     }
     this->enable_periodic = true;
+    this->tenure();
 }
 
 PropulsionSubsystem::~PropulsionSubsystem() {

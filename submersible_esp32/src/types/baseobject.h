@@ -42,15 +42,20 @@ struct SerializationResult {
 class BaseObject {
 public:
     // Allocates memory for serialization. Free buffer when done transmitting.
-    BaseObject() { this->creation_time_ms = millis(); }
+    BaseObject() {
+        this->creation_time_ms = millis();
+        if (this->creation_time_ms == UINT32_MAX) {
+            this->creation_time_ms = UINT32_MAX - 1;
+        }
+    }
     virtual SerializationResult serialize() = 0;
     virtual uint16_t getTypeId() = 0;
     virtual const char* getTypeString() = 0;
     virtual bool isException() { return false; }
+    virtual bool isPreviewable() { return false; }
+    virtual uint8_t preview() { return 255; }
     virtual BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) { return NULL; }
     virtual void periodic() {}
-    bool enable_periodic = false; // Optimization
-    unsigned long creation_time_ms = 0;
 
     bool consumeMethodResult(uint8_t slot, BaseObject** params, uint8_t num_params) {
         BaseObject* ptr = this->callMethod(slot, params, num_params);
@@ -60,6 +65,13 @@ public:
         }
         return false;
     }
+protected:
+    bool enable_periodic = false;
+    void tenure() { this->creation_time_ms = UINT32_MAX; }
+private:
+    unsigned long creation_time_ms = 0;
+    friend class ObjectRegistry;
+    friend void proto_timer_isr();
 };
 
 struct MethodExceptionData {

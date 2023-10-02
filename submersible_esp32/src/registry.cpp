@@ -20,7 +20,8 @@ uint16_t ObjectRegistry::addObject(BaseObject* obj) {
         for (uint16_t i = 0; i < new_capacity; i++) {
             if (i >= this->capacity) {
                 new_registry[i] = NULL;
-            } else {
+            }
+            else {
                 new_registry[i] = this->registry[i];
             }
         }
@@ -73,9 +74,11 @@ void ObjectRegistry::runGarbageCollection(unsigned long max_age_ms) {
     unsigned long time = millis();
     for (uint32_t i = 0; i < this->capacity; i++) {
         if (this->registry[i] != NULL) {
-            if (time - this->registry[i]->creation_time_ms > max_age_ms) {
-                // Guhguhgarbage!
-                this->delObject(i);
+            if (this->registry[i]->creation_time_ms != UINT32_MAX) {
+                if (time - this->registry[i]->creation_time_ms > max_age_ms) {
+                    // Guhguhgarbage!
+                    this->delObject(i);
+                }
             }
         }
     }

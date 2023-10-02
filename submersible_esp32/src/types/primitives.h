@@ -21,7 +21,12 @@ public:
     uint16_t getTypeId() override { return INT_TYPEID; }
     static uint16_t _static_typeId() { return INT_TYPEID; }
     const char* getTypeString() override { return "Integer"; }
-
+    bool isPreviewable() override {
+        return (this->value >= 0 && this->value < 256);
+    }
+    uint8_t preview() {
+        return this->value;
+    }
     int value = 0;
 };
 

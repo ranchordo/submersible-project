@@ -15,6 +15,7 @@ LightingSubsystem::LightingSubsystem() {
     ledcSetup(main_ledc_channel, 20000, 8);
     ledcAttachPin(4, main_ledc_channel);
     ledcWrite(main_ledc_channel, 0);
+    this->tenure();
 }
 
 LightingSubsystem::~LightingSubsystem() {

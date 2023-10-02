@@ -243,14 +243,17 @@ CommunicationSubsystem::CommunicationSubsystem() {
     for (uint32_t i = 0; i < sizeof(out_waves) / sizeof(WaveDescriptor); i++) {
         out_waves[i].renderWave();
     }
+    this->instream = (uint8_t*)malloc(COMMS_INSTREAM_SIZE);
     this->startIdle();
     this->status = COMMS_STATUS_IDLE;
+    this->tenure();
 }
 
 CommunicationSubsystem::~CommunicationSubsystem() {
     for (uint32_t i = 0; i < sizeof(out_waves) / sizeof(WaveDescriptor); i++) {
         out_waves[i].~WaveDescriptor();
     }
+    free(this->instream);
 }
 
 BaseObject* CommunicationSubsystem::callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) {
@@ -412,7 +415,7 @@ static IRAM_ATTR void ulp_isr_input(void* argptr) {
 
 static CommunicationSubsystem* input_timer_isr_ctx;
 
-static IRAM_ATTR void input_timer_isr() {
+IRAM_ATTR void input_timer_isr() {
     float adc_avg = input_timer_isr_ctx->getInputAmplitude(0);
     if (adc_avg > 0.7) {
         input_timer_isr_ctx->currentOffsAdj++;
@@ -493,6 +496,9 @@ void CommunicationSubsystem::transmitWord(uint16_t data) {
 
 // Does not free the buffer.
 void CommunicationSubsystem::transmit(uint8_t* buffer, size_t len) {
+    if (len == 0) {
+        return;
+    }
     size_t tx_len = 0;
     uint16_t* tx_buf = encode(buffer, len, &tx_len);
     for (size_t i = 0; i < tx_len; i++) {
