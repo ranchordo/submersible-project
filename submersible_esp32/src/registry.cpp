@@ -20,8 +20,7 @@ uint16_t ObjectRegistry::addObject(BaseObject* obj) {
         for (uint16_t i = 0; i < new_capacity; i++) {
             if (i >= this->capacity) {
                 new_registry[i] = NULL;
-            }
-            else {
+            } else {
                 new_registry[i] = this->registry[i];
             }
         }

@@ -27,6 +27,7 @@ private:
     volatile uint32_t tx_buffer_top;
     volatile bool force_packet = false;
     SemaphoreHandle_t buffer_semaphore;
+    TaskHandle_t dct_taskhandle;
     friend void proto_timer_isr();
-    friend void do_comms_transmit(void*);
+    friend void do_comms_transmit_single(void*);
 };

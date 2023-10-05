@@ -190,20 +190,24 @@ IRAM_ATTR void proto_timer_isr() {
     }
 }
 
-void do_comms_transmit(void* argptr) {
+void do_comms_transmit_single(void* argptr) {
     ProtocolController* arg = (ProtocolController*)argptr;
-    xSemaphoreTake(arg->buffer_semaphore, portMAX_DELAY);
     if (arg->tx_buffer_top > 16) {
+        xSemaphoreTake(arg->buffer_semaphore, portMAX_DELAY);
         uint8_t prev_last_byte = arg->tx_buffer[16];
         arg->tx_buffer[16] = 1;
         arg->comms->transmit(arg->tx_buffer, 17);
         arg->tx_buffer[16] = prev_last_byte;
-        arg->tx_buffer_top -= 16;
-        for (uint32_t i = 16; i < PROTO_TX_BUFFER_LEN; i++) {
+        // Consumption routine, shift queue down
+        // TODO: Circular buffer
+        for (uint32_t i = 16; i < arg->tx_buffer_top; i++) {
             arg->tx_buffer[i - 16] = arg->tx_buffer[i];
         }
-    }
-    else if (arg->force_packet) {
+        arg->tx_buffer_top -= 16;
+        xSemaphoreGive(arg->buffer_semaphore);
+        return;
+    } else if (arg->force_packet) {
+        xSemaphoreTake(arg->buffer_semaphore, portMAX_DELAY);
         uint8_t prev_last_byte = arg->tx_buffer[16];
         for (int i = arg->tx_buffer_top; i < 17; i++) {
             arg->tx_buffer[i] = 0;
@@ -211,9 +215,13 @@ void do_comms_transmit(void* argptr) {
         arg->comms->transmit(arg->tx_buffer, 17);
         arg->tx_buffer[16] = prev_last_byte;
         arg->tx_buffer_top = 0;
+        xSemaphoreGive(arg->buffer_semaphore);
     }
-    xSemaphoreGive(arg->buffer_semaphore);
-    delay(2);
+    delay(30);
+}
+
+void do_comms_transmit(void* argptr) {
+    for (;;) { do_comms_transmit_single(argptr); }
 }
 
 ProtocolController::ProtocolController(CommunicationSubsystem* comms) {
@@ -230,10 +238,12 @@ ProtocolController::ProtocolController(CommunicationSubsystem* comms) {
     this->tx_buffer = (uint8_t*)malloc(PROTO_TX_BUFFER_LEN);
     this->tx_buffer_top = 0;
     this->buffer_semaphore = xSemaphoreCreateBinary();
+    xTaskCreate(do_comms_transmit, "do_comms_transmit", 4096, (void*)this, 10, &this->dct_taskhandle);
     this->tenure();
 }
 
 ProtocolController::~ProtocolController() {
+    vTaskDelete(this->dct_taskhandle);
     timerAlarmDisable(periodic_timer.timer);
     timerDetachInterrupt(periodic_timer.timer);
     timerEnd(periodic_timer.timer);

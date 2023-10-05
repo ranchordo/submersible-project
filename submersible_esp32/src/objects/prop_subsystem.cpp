@@ -216,8 +216,7 @@ PropulsionSubsystem::PropulsionSubsystem() {
         ledcWrite(ledc_channel, 0);
         if (ledc_success) {
             this->ledc_motor_channels[i] = ledc_channel;
-        }
-        else {
+        } else {
             this->ledc_motor_channels[i] = 0;
         }
     }
@@ -280,8 +279,7 @@ void PropulsionSubsystem::writeMotorValue(float value, uint8_t motor) {
             value = -1;
         }
         ledcWrite(ledc_channel, map(-value * 10000, 0, 10000, ESC_MIDPOINT, ESC_BOTTOM));
-    }
-    else {
+    } else {
         if (value > 1) {
             value = 1;
         }
