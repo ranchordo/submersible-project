@@ -71,6 +71,7 @@ protected:
 private:
     unsigned long creation_time_ms = 0;
     friend class ObjectRegistry;
+    friend void runStartupProcedure();
     friend void proto_timer_isr();
 };
 

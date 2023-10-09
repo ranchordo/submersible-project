@@ -6,7 +6,8 @@
 
 class ProtocolController: public BaseObject {
 public:
-    ProtocolController(CommunicationSubsystem* comms);
+    ProtocolController();
+    ProtocolController(CommunicationSubsystem* comms, bool is_module);
     ProtocolController(BaseObject** params, uint8_t num_params);
     ~ProtocolController();
     SerializationResult serialize() override {
@@ -15,7 +16,7 @@ public:
     uint16_t getTypeId() override { return TYPEID_PROTO_CONTROLLER; }
     static uint16_t _static_typeId() { return TYPEID_PROTO_CONTROLLER; }
     const char* getTypeString() override { return "Proto_Ctrl"; }
-    BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) override;
+    // BaseObject* callMethod(uint8_t slot, BaseObject** params, uint8_t num_params) override;
 
 private:
     struct {
@@ -28,6 +29,11 @@ private:
     volatile bool force_packet = false;
     SemaphoreHandle_t buffer_semaphore;
     TaskHandle_t dct_taskhandle;
+    bool is_module;
+
+    void doConstruction(CommunicationSubsystem* comms, bool is_module);
+
     friend void proto_timer_isr();
+    friend void proto_timer_isr_module();
     friend void do_comms_transmit_single(void*);
 };

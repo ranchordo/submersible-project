@@ -27,8 +27,10 @@ LightingSubsystem::LightingSubsystem(BaseObject** params, uint8_t num_params):
 }
 
 ProtocolController::ProtocolController(BaseObject** params, uint8_t num_params):
-    ProtocolController(NULL) {
+    ProtocolController() {
     CHECK_TYPE_SIGNATURE(objects_constr, this, params, num_params, 1, TYPEID_COMMS_SUBSYS);
+    CommunicationSubsystem* comms = (CommunicationSubsystem*)(params[0]);
+    this->doConstruction(comms, false);
 }
 
 BaseObject* constructObject(uint16_t type_id, BaseObject** params, uint8_t num_params) {
