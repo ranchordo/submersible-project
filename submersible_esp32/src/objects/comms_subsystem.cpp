@@ -7,6 +7,9 @@
 #include <driver/adc.h>
 #include "../resource_allocator.h"
 
+#define TWOPI 6.2831853f
+#define ONEPI 3.141592654f
+
 struct DualPhase {
     float p1;
     float p2;
@@ -18,13 +21,17 @@ DualPhase do_wave(uint32_t values_per_buffer, uint32_t cycles_per_buffer, uint32
     return { sin(theta), cos(theta) };
 }
 
-void WaveDescriptor::renderWave() {
-    phase_1 = (int16_t*)malloc(values_per_buffer * sizeof(int16_t));
-    phase_2 = (int16_t*)malloc(values_per_buffer * sizeof(int16_t));
-    for (uint32_t i = 0; i < values_per_buffer; i++) {
-        DualPhase data = do_wave(values_per_buffer, cycles_per_buffer, i);
-        phase_1[i] = (int16_t)(data.p1 * 32767.0);
-        phase_2[i] = (int16_t)(data.p2 * 32767.0);
+void renderSamples(WaveDescriptor* desc, uint32_t num_samples_per_unit, float frequency) {
+    const double smooth = ONEPI * 0.8;
+    desc->values_per_buffer = num_samples_per_unit;
+    desc->phase_1 = (float*)malloc(num_samples_per_unit * sizeof(float));
+    desc->phase_2 = (float*)malloc(num_samples_per_unit * sizeof(float));
+    for (uint32_t i = 0; i < num_samples_per_unit; i++) {
+        double xinp = (((double)i + 1) / num_samples_per_unit);
+        float theta = xinp * TWOPI * frequency;
+        float f_conv = sin(smooth * (double)xinp) / ((double)xinp);
+        desc->phase_1[i] = sin(theta) * f_conv;
+        desc->phase_2[i] = cos(theta) * f_conv;
     }
 }
 
@@ -240,13 +247,14 @@ CommunicationSubsystem::CommunicationSubsystem() {
     // Configure ULP clock
     unsigned long rtc_8md256_period = rtc_clk_cal(RTC_CAL_8MD256, 1000);
     this->rtc_fast_freq_hz = 1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_8md256_period;
-    for (uint32_t i = 0; i < sizeof(out_waves) / sizeof(WaveDescriptor); i++) {
-        out_waves[i].renderWave();
-    }
     this->instream = (uint8_t*)malloc(COMMS_INSTREAM_SIZE);
     this->startIdle();
     this->status = COMMS_STATUS_IDLE;
     this->tenure();
+
+    for (int i = 0; i < sizeof(in_wave_freqs) / sizeof(float); i++) {
+        renderSamples(&in_waves[i], COMMS_ACCUM_SIZE, in_wave_freqs[i]);
+    }
 }
 
 CommunicationSubsystem::~CommunicationSubsystem() {
@@ -285,6 +293,7 @@ void CommunicationSubsystem::startOutput() {
     this->startIdle();
     unsigned long rtc_8md256_period = rtc_clk_cal(RTC_CAL_8MD256, 1000);
     this->rtc_fast_freq_hz = 1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_8md256_period;
+    Serial.println(this->rtc_fast_freq_hz);
     dac_output_enable(DAC_CHANNEL_1);
     dac_output_voltage(DAC_CHANNEL_1, 0);
     uint32_t base_loop_cycles = 60;
@@ -351,18 +360,20 @@ void CommunicationSubsystem::selectOutput(uint8_t sel) {
     dac_buf_toggle = 256 + (128 * (sel - 1));
 }
 
-float wave_score(WaveDescriptor* wave, void* argptr) {
+double wave_score(WaveDescriptor* wave, void* argptr) {
     ULP_ISR_Argument* arg = (ULP_ISR_Argument*)argptr;
-    int16_t* phase1 = wave->phase_1;
-    int16_t* phase2 = wave->phase_2;
+    float* phase1 = wave->phase_1;
+    float* phase2 = wave->phase_2;
     uint32_t wave_size = wave->values_per_buffer;
     uint16_t num_cycles = arg->buffer_size / wave_size;
-    float integrator_1 = 0;
-    float integrator_2 = 0;
+    uint32_t wave_offset = wave_size / 4;
+    double integrator_1 = 0;
+    double integrator_2 = 0;
     for (uint16_t i = 0; i < num_cycles * wave_size; i++) {
-        float p1 = ((float)phase1[i % wave_size]) / 32767.0;
-        float p2 = ((float)phase2[i % wave_size]) / 32767.0;
-        float val = (RTC_SLOW_MEM[2048 - (2 * arg->buffer_size) + i] & 0x0fff) / 4095.0;
+        double p1 = phase1[i % wave_size];
+        double p2 = phase2[i % wave_size];
+        uint32_t adc1 = (RTC_SLOW_MEM[2048 - (2 * arg->buffer_size) + i] & 0x0fff);
+        double val = (adc1) / 4095.0;
         integrator_1 += val * p1;
         integrator_2 += val * p2;
     }
@@ -373,14 +384,23 @@ float wave_score(WaveDescriptor* wave, void* argptr) {
     return integrator_1 + integrator_2;
 }
 
-uint32_t to_uint32(float data) {
-    return *(uint32_t*)(&data);
+uint32_t to_uint32(double data) {
+    float something = data;
+    return *(uint32_t*)(&something);
 }
-
-uint32_t cp0_regs[18];
 
 volatile unsigned long dt_micros;
 volatile unsigned long t_micros = 0;
+
+volatile uint8_t waves[COMMS_WAVEBUF_SIZE];
+volatile uint32_t waveidx = 0;
+
+uint8_t believed_wave(double score1, double score2) {
+    if (score2 > (1.45 * score1)) {
+        return 1;
+    }
+    return 0;
+}
 
 static IRAM_ATTR void ulp_isr_input(void* argptr) {
     ULP_ISR_Argument* arg = (ULP_ISR_Argument*)argptr;
@@ -393,30 +413,28 @@ static IRAM_ATTR void ulp_isr_input(void* argptr) {
         RTC_SLOW_MEM[2048 - (2 * arg->buffer_size) + i] =
             RTC_SLOW_MEM[2048 - arg->buffer_size + i];
     }
-    uint32_t cpstate = xthal_get_cpenable();
-    if (!cpstate) {
-        xthal_set_cpenable(1);
-    }
-    xthal_save_cp0(cp0_regs);
-    float adc_avg = 0;
+    double adc_avg = 0;
     for (uint32_t i = 0; i < arg->buffer_size; i++) {
         adc_avg += RTC_SLOW_MEM[2048 - (2 * arg->buffer_size) + i] & 0x0fff;
     }
     adc_avg /= 4095.0 * arg->buffer_size;
     RTC_SLOW_MEM[256] = to_uint32(adc_avg);
-    RTC_SLOW_MEM[257] = to_uint32(wave_score(&arg->wave1, argptr));
-    RTC_SLOW_MEM[258] = to_uint32(wave_score(&arg->wave2, argptr));
-    RTC_SLOW_MEM[2048 - arg->buffer_size] = 0;
-    xthal_restore_cp0(cp0_regs);
-    if (!cpstate) {
-        xthal_set_cpenable(0);
+    double score1 = wave_score(&arg->wave1, argptr);
+    double score2 = wave_score(&arg->wave2, argptr);
+    uint8_t wave = believed_wave(score1, score2);
+    RTC_SLOW_MEM[257] = wave;
+    waves[waveidx] = wave;
+    waveidx++;
+    if (waveidx >= COMMS_WAVEBUF_SIZE) {
+        waveidx = 0;
     }
+    RTC_SLOW_MEM[2048 - arg->buffer_size] = 0;
 }
 
 static CommunicationSubsystem* input_timer_isr_ctx;
 
 IRAM_ATTR void input_timer_isr() {
-    float adc_avg = input_timer_isr_ctx->getInputAmplitude(0);
+    double adc_avg = *(float*)(&RTC_SLOW_MEM[256]);
     if (adc_avg > 0.7) {
         input_timer_isr_ctx->currentOffsAdj++;
         dac_output_voltage(DAC_CHANNEL_1, input_timer_isr_ctx->currentOffsAdj);
@@ -425,6 +443,7 @@ IRAM_ATTR void input_timer_isr() {
         input_timer_isr_ctx->currentOffsAdj--;
         dac_output_voltage(DAC_CHANNEL_1, input_timer_isr_ctx->currentOffsAdj);
     }
+    // Parse words out of input data
 }
 
 void CommunicationSubsystem::startInput() {
@@ -432,9 +451,9 @@ void CommunicationSubsystem::startInput() {
     unsigned long rtc_8md256_period = rtc_clk_cal(RTC_CAL_8MD256, 1000);
     this->rtc_fast_freq_hz = 1000000ULL * (1 << RTC_CLK_CAL_FRACT) * 256 / rtc_8md256_period;
     // Setup ADC and DAC with predefined parameters
-    this->isr_arg.buffer_size = 256;
-    this->isr_arg.wave1 = this->out_waves[0];
-    this->isr_arg.wave2 = this->out_waves[1];
+    this->isr_arg.buffer_size = COMMS_ACCUM_SIZE;
+    this->isr_arg.wave1 = this->in_waves[0];
+    this->isr_arg.wave2 = this->in_waves[1];
     dac_output_enable(DAC_CHANNEL_1);
     dac_output_voltage(DAC_CHANNEL_1, currentOffsAdj);
     adc1_config_width(ADC_WIDTH_BIT_12);
@@ -480,18 +499,18 @@ void CommunicationSubsystem::startInput() {
     this->status = COMMS_STATUS_INPUT;
 }
 
-float CommunicationSubsystem::getInputAmplitude(uint8_t wave) {
-    return *(float*)(&RTC_SLOW_MEM[256 + wave]);
-}
-
 void CommunicationSubsystem::transmitWord(uint16_t data) {
+    this->selectOutput(2); // Transition from idle
+    delayMicroseconds(TRANSMIT_INTERVAL_US);
     for (uint8_t i = 0; i < 16; i++) {
         this->selectOutput((data & 1) + 1);
         delayMicroseconds(TRANSMIT_INTERVAL_US);
         data >>= 1;
     }
-    this->selectOutput(0);
+    this->selectOutput(1); // Transition to idle
     delayMicroseconds(TRANSMIT_INTERVAL_US);
+    this->selectOutput(0);
+    delayMicroseconds(2 * TRANSMIT_INTERVAL_US);
 }
 
 // Does not free the buffer.
@@ -524,4 +543,8 @@ void CommunicationSubsystem::startIdle() {
     ulp_process_macros_and_load(0, halt_code, &num_instrs);
     ulp_run(0); // Shutdown ULP coproc
     this->status = COMMS_STATUS_IDLE;
+}
+
+uint8_t CommunicationSubsystem::getBelievedInputWave() {
+    return RTC_SLOW_MEM[257];
 }
