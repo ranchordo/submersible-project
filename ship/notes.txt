@@ -1,0 +1,24 @@
+Some notes on the ship:
+
+Functions, electronically:
+  ESP32 (so, wifi and such)
+  Propulsion (3 ESCs)
+  GPS+GRPS (A9G with 1nce SIM)
+  HC-12 radio
+  Spool control
+  Magnetometer (keep away from spool magnet!)
+
+Tasks for the ESP32:
+  Monitor the radio for incoming commands
+  Forward some commands directly to upper probe
+  Control heading
+    Closed-loop feedback control system with magnetometer input
+    Relay target heading to upper probe
+  Keep up with heading and GPS location
+    Send data when asked
+  Do something cool with GRPS? Not sure...
+  Spool control
+    Allow steps in increments of markers
+    Magnet at each marker
+      Some weird control system can hold fixed position at marker
+      Also can choose to skip markers

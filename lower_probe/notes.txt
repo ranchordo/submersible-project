@@ -1,0 +1,48 @@
+Some notes on the lower probe:
+
+Functions, electronically:
+  Camera
+  Propulsion
+  Lighting
+  Camera pitch
+  Magnetometer
+  ESP32-RPi interface: SPI
+  Upper probe comms
+
+Tasks for the ESP32:
+  Generate propulsion PWM
+    Simple command to set target camera heading
+    Closed-loop feedback control system with magnetometer input
+    Important: Rapid failure detection - do not allow positive feedback
+    Command to enable/disable manual override mode
+      Simple command to set propulsion speed
+      Reset to default (no motion) after ~0.5sec
+  Generate lighting PWM
+    Simple command to set
+    Resets to default after ~1sec
+  Control camera pitch
+    Closed-loop feedback control system with magnetometer input
+    Simple command to set target
+    Important: Rapid failure detection - do not allow motor to spin freely
+  Be available to send magnetometer data
+    Simple command to query
+    Camera heading and pitch (maybe roll for completeness?)
+  Be available over SPI (necessitates command system)
+  Generate DACed threshold signal for surface comms
+    Simple command to set
+
+Tasks for the RPi:
+  Get, compress, and send video feed
+    Add some gaps so upper probe can transmit
+    "Blanking intervals"
+  Relay some commands to ESP32
+    Lighting
+    Camera pitch and heading
+    NOT: DAC tuning
+    ALSO: Relay results (even just ACK)
+  Deal with SPI
+  Negotiate and search for proper threshold signal
+    Quickly!
+    Must be able to get upper probe to send known test packet
+    Triggered by malformed packets or lack of rx
+    Must only run so often (about once every second, max)

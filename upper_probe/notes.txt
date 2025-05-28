@@ -1,0 +1,11 @@
+Some notes on the upper probe:
+
+Functions, electronically:
+  Lower probe comms
+  ESP32 (so, wifi and such)
+  That's it!
+
+ESP32 is basically just a relay to short-range wireless, but with extra tasks:
+  Send test packet every so often to keep the lower probe happy
+  Watch for a command and send different test packet when received (quickly)
+    Only for negotiations over DAC threshold signal on lower probe
