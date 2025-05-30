@@ -8,13 +8,13 @@ Buffer contains:
   Magnetometer data:
     Heading (uint16_t)
       ESP32 returns actual measured heading (0-32767), RPI sends target heading (0-32767) or manual
-      If MSB is set, propulsion is in manual mode. In this case, LS 8 bits in RPI transmission is propulsion duty cycle
+      If MSB is set, propulsion is in manual mode. In this case, LS 10 bits in RPI transmission is propulsion duty cycle
     Camera pitch (uint16_t)
       ESP32 returns actual measured pitch (0-32767), RPI sends target pitch (0-32767) or manual
-      If MSB is set, pitch is in manual mode. In this case, LS 8 bits are motor duty cycle, LS bit 9 is direction in RPI tx
+      If MSB is set, pitch is in manual mode. In this case, LS 10 bits are motor duty cycle, LS bit 1 is direction in RPI tx
       
   Lighting status:
-    Current lighting duty cycle (uint8_t)
+    Current lighting duty cycle (uint16_t) (0-1023)
   
   DAC status:
     Current DAC output (uint8_t)
